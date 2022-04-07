@@ -1,0 +1,155 @@
+---
+title: "Assignment 1"
+description: |
+  A new article created using the Distill format.
+author:
+  - name: Johnathan He 
+    affiliation: JHU
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+
+```{r "setup", include = FALSE}
+require("knitr")
+opts_knit$set(root.dir = "D:/OneDrive - Johns Hopkins/Course/340.723.01 - Epidemiologic Practice Methods for Population Health Research/assignment/Epi-723-assignment/Assignment 1")
+```
+
+
+```{r}
+require(survey)
+require(sandwich)
+require(tidyverse)
+require(questionr)
+require(gtsummary)
+
+setwd("D:/OneDrive - Johns Hopkins/Course/340.723.01 - Epidemiologic Practice Methods for Population Health Research/assignment/Epi-723-assignment/Assignment 1")
+```
+
+
+```{r}
+data <- read_csv("./DATA/NHIS 2020 Adult Data.csv")
+```
+
+
+## Q1-4
+
+
+```{r}
+data.survey <- svydesign(
+  id = ~ ppsu,
+  strata = ~ pstrat,
+  weights =  ~ wtfa_a,
+  data = data,
+  nest = TRUE
+)
+```
+
+
+```{r}
+# weighted
+svymean(~factor(cholesterol), design = data.survey, na.rm = TRUE, deff = TRUE)
+```
+
+
+```{r}
+# unweighted
+prop.table(table(data$cholesterol))
+```
+
+
+# Q 5-6
+
+```{r}
+svyby(~ bmi, ~ cholesterol, FUN = svymean, design = data.survey,
+      ci = TRUE, deff = TRUE, na.rm = TRUE)
+```
+
+
+# Q 7-8
+
+```{r}
+svyby(~ agep_a, by = ~ sex + cholesterol, FUN = svymean, design = data.survey,
+      ci = TRUE, deff = TRUE, na.rm = TRUE)
+```
+
+
+# Q 9-10
+
+```{r}
+svyhist(~education, design = data.survey, freq = FALSE)
+```
+
+
+```{r}
+svyboxplot(education ~ factor(cholesterol), design = data.survey)
+```
+
+
+```{r}
+obj <- svyby(~ factor(education), by =  ~ factor(cholesterol), design = data.survey, FUN = svymean, na.rm = TRUE)
+barplot(obj, legend.text=TRUE)
+```
+
+
+```{r}
+obj %>% 
+    select(`factor(cholesterol)`, `factor(education)0`, `factor(education)1`) %>% 
+    pivot_longer(cols = contains("education"),
+                 names_to = "ES",
+                 values_to = "value") %>% 
+    mutate(`factor(cholesterol)` = factor(`factor(cholesterol)`,
+                                          labels = c("Normal Cholesterol", "High Cholesterol"))) %>% 
+    ggplot(aes(x = `factor(cholesterol)`, y = value, group = ES, fill = ES)) +
+    geom_bar(stat = "identity", width = 0.5, position = position_dodge()) +
+    geom_text(aes(label = paste(floor(value*100), "%", sep = "")), vjust = -0.4, color = "black",
+              position = position_dodge(0.5), size = 3.5)+
+    scale_fill_manual("",
+                      values = c("#ff9900", "146eb4"),
+                      labels = c("High School Graduate or Less",
+                                 "Any College or More")) +
+    labs(title = "High School Or Less vs At Least Some College",
+         subtitle = "By Reporting Normal vs High Cholesterol") +
+    xlab("") +
+    ylab("Reporting Proportions") +
+    theme(legend.position = "bottom",
+          panel.background = element_rect(fill = 'transparent', color = 'gray'))
+```
+
+
+# Q 11-13
+
+
+```{r}
+# svyglm(cholesterol ~ factor(partner) + factor(sex) + factor(region) + factor(bmi), design = data.survey,
+#        family = quasibinomial(link = "logit")) %>% 
+#     tbl_regression(estimate_fun = purrr::partial(style_ratio, digits = 4),
+#                    pvalue_fun = purrr::partial(style_sigfig, digits = 4))
+```
+
+
+```{r}
+svyglm(cholesterol ~ factor(partner) + factor(sex) + factor(region) + factor(bmi), design = data.survey,
+       family = quasibinomial(link = "logit")) %>% 
+    tbl_regression(exponentiate = TRUE,
+                   estimate_fun = purrr::partial(style_ratio, digits = 4),
+                   pvalue_fun = purrr::partial(style_sigfig, digits = 4))
+```
+
+
+```{r}
+# glm(cholesterol ~ factor(partner) + factor(sex) + factor(region) + factor(bmi), data = data,
+#        family = quasibinomial(link = "logit")) %>% 
+#     tbl_regression(estimate_fun = purrr::partial(style_ratio, digits = 4),
+#                    pvalue_fun = purrr::partial(style_sigfig, digits = 4))
+```
+
+
+```{r}
+glm(cholesterol ~ factor(partner) + factor(sex) + factor(region) + factor(bmi), data = data,
+       family = quasibinomial(link = "logit")) %>% 
+    tbl_regression(exponentiate = TRUE,
+                   estimate_fun = purrr::partial(style_ratio, digits = 4),
+                   pvalue_fun = purrr::partial(style_sigfig, digits = 4))
+```
+
