@@ -1,0 +1,253 @@
+---
+title: "Assignment 2"
+author:
+  - name: Johnathan He 
+    affiliation: Epidemiology, Johns Hopkins
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+
+```{r "setup", include = FALSE}
+require("knitr")
+opts_chunk$set(warning = FALSE, message = FALSE, echo = TRUE, error = TRUE)
+opts_knit$set(root.dir = "D:/OneDrive - Johns Hopkins/Course/340.723.01 - Epidemiologic Practice Methods for Population Health Research/assignment/Epi-723-assignment/Assignment 2")
+```
+
+
+```{r}
+require(demography)
+require(forecast)
+require(tidyverse)
+
+setwd("D:/OneDrive - Johns Hopkins/Course/340.723.01 - Epidemiologic Practice Methods for Population Health Research/assignment/Epi-723-assignment/Assignment 2")
+```
+
+
+```{r}
+filename <- read.demogdata("./DATA/MD Deaths.txt", "./DATA/MD Population.txt",
+                           type = "mortality", label = "Maryland",
+                           scale = 1, skip = 0)
+```
+
+
+## Q1
+
+
+```{r}
+lifetable(data = filename, type = "period")
+```
+
+
+## Q2
+
+
+```{r}
+round(50+31.0219, 2)
+```
+
+
+## Q4
+
+
+```{r}
+MD <- read_csv("./DATA/Maryland 5Yr 2020.csv")
+```
+
+
+```{r}
+MD %>% 
+    mutate(qx = deaths/population) %>% 
+    mutate(survival = lag(1-qx)) %>% 
+    mutate(survival = ifelse(is.na(survival) == TRUE, 1, survival)) %>% 
+    mutate(lx = ifelse(stratum == 1, 100000, 100000*cumprod(survival))) %>% 
+    mutate(survival = NULL) %>% 
+    mutate(dx = 100000-lx) %>% 
+    mutate(Lx = case_when(stratum == 1 ~ lx - dx*0.5,
+                          stratum == 2 ~ (lx - dx*0.5)*4,
+                          TRUE ~ (lx - dx*0.5)*5)) %>%
+    mutate(Tx = rev(cumsum(rev(Lx)))) %>% 
+    mutate(ex = Tx/lx)
+```
+
+
+## Q5
+
+
+```{r}
+MD2020 <- read.csv("./DATA/Underlying Cause of Death, 1999-2020.txt",
+                   sep = "\t", header = TRUE)
+```
+
+
+```{r}
+MD2020 <- MD2020 %>% 
+    filter(Five.Year.Age.Groups.Code != "NS") %>% 
+    filter(Gender != "") %>% 
+    mutate(Population = ifelse(Population == "Not Applicable", as.character(NA), Population)) %>% 
+    mutate(Population = as.numeric(Population))
+```
+
+
+```{r}
+# female
+MD_deaths_female <- MD2020 %>% 
+    filter(Gender == "Female") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    mutate(Rate = Deaths/Population) %>% 
+    select(Year, Age, Rate)
+MD_population_female <- MD2020 %>% 
+    filter(Gender == "Female") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    select(Year, Age, Population)
+write.table(MD_deaths_female, file = "./DATA/MD deaths female.txt")
+write.table(MD_population_female, file = "./DATA/MD population female.txt")
+```
+
+
+```{r}
+# male
+MD_deaths_male <- MD2020 %>% 
+    filter(Gender == "Male") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    mutate(Rate = Deaths/Population) %>% 
+    select(Year, Age, Rate)
+MD_population_male <- MD2020 %>% 
+    filter(Gender == "Male") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    select(Year, Age, Population)
+write.table(MD_deaths_male, file = "./DATA/MD deaths male.txt")
+write.table(MD_population_male, file = "./DATA/MD population male.txt")
+```
+
+
+```{r}
+MD2020_demo_male <- read.demogdata("./DATA/MD deaths male.txt", "./DATA/MD population male.txt",
+                                   type = "mortality", label = "Maryland",
+                                   scale = 1, skip = 0)
+```
+
+
+```{r}
+lifetable(data = MD2020_demo_male, type = "period")
+```
+
+
+## Q6
+
+
+```{r}
+MD2020_demo_female <- read.demogdata("./DATA/MD deaths female.txt", "./DATA/MD population female.txt",
+                                     type = "mortality", label = "Maryland",
+                                     scale = 1, skip = 0)
+```
+
+
+```{r}
+lifetable(data = MD2020_demo_female, type = "period")
+```
+
+
+## Q7
+
+
+```{r}
+MD2020 <- read.csv("./DATA/Underlying Cause of Death, 1999-2020.txt",
+                   sep = "\t", header = TRUE) %>% 
+    filter(Five.Year.Age.Groups.Code != "NS") %>% 
+    filter(Gender != "") %>% 
+    mutate(Population = case_when(
+        Population == "Not Applicable" & Gender == "Female" ~ as.character(78537),
+        Population == "Not Applicable" & Gender == "Male" ~ as.character(41994),
+        TRUE ~ Population)) %>% 
+    mutate(Population = as.numeric(Population))
+```
+
+
+```{r}
+# female
+MD_deaths_female <- MD2020 %>% 
+    filter(Gender == "Female") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    mutate(Rate = Deaths/Population) %>% 
+    select(Year, Age, Rate)
+MD_population_female <- MD2020 %>% 
+    filter(Gender == "Female") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    select(Year, Age, Population)
+write.table(MD_deaths_female, file = "./DATA/MD deaths female_2.txt")
+write.table(MD_population_female, file = "./DATA/MD population female_2.txt")
+```
+
+
+```{r}
+# male
+MD_deaths_male <- MD2020 %>% 
+    filter(Gender == "Male") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    mutate(Rate = Deaths/Population) %>% 
+    select(Year, Age, Rate)
+MD_population_male <- MD2020 %>% 
+    filter(Gender == "Male") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5))) %>% 
+    select(Year, Age, Population)
+write.table(MD_deaths_male, file = "./DATA/MD deaths male_2.txt")
+write.table(MD_population_male, file = "./DATA/MD population male_2.txt")
+```
+
+
+```{r}
+MD2020_demo_male <- read.demogdata("./DATA/MD deaths male_2.txt", "./DATA/MD population male_2.txt",
+                                   type = "mortality", label = "Maryland",
+                                   scale = 1, skip = 0)
+```
+
+
+```{r}
+lifetable(data = MD2020_demo_male, type = "period")
+```
+
+
+## Q8
+
+
+```{r}
+MD2020_demo_female <- read.demogdata("./DATA/MD deaths female_2.txt", "./DATA/MD population female_2.txt",
+                                     type = "mortality", label = "Maryland",
+                                     scale = 1, skip = 0)
+```
+
+
+```{r}
+lifetable(data = MD2020_demo_female, type = "period")
+```
+
+
+## Q9-10
+
+
+```{r}
+# Male
+MD2020_male <- MD2020 %>% 
+    filter(Gender == "Male") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5)))
+
+# Female
+MD2020_female <- MD2020 %>% 
+    filter(Gender == "Female") %>% 
+    mutate(Year = 2020) %>% 
+    mutate(Age = c(0, 1, seq(5, 85, 5)))
+
+write.csv(MD2020_male, file = "./DATA/MD2020_male.csv")
+write.csv(MD2020_female, file = "./DATA/MD2020_female.csv")
+```
+
