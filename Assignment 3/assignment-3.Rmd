@@ -1,0 +1,89 @@
+---
+title: "Assignment 3"
+description: |
+  A new article created using the Distill format.
+author:
+  - name: Johnathan He
+    affiliation: JHSPH
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+require(tidyverse)
+```
+
+
+## Q1
+
+
+```{r}
+(74.5 - 58)*3
+```
+
+
+## Q2
+
+
+```{r}
+c(58:73) %>% 
+    map_dbl(~ (1+0.03)^(-(.x - 58))) %>% 
+    sum()*3 + 0.5*(1+0.03)^(-(74-58))*3
+```
+
+
+## Q3
+
+
+```{r}
+tibble(
+    age_start = seq(15, 70, 5),
+    age_end = seq(19, 74, 5),
+    deaths = c(208, 459, 699, 892, 972,
+               1117, 1386, 2174, 3604, 4523,
+               5265, 6388)
+) %>% 
+    mutate(midpoint = (age_start + age_end)/2) %>% 
+    mutate(`75-midpoint` = 75 - midpoint) %>% 
+    mutate(YPLL = deaths * `75-midpoint`) %>% 
+    pull(YPLL) %>% 
+    sum()
+```
+
+
+## Q5
+
+
+```{r}
+LS16 <- (86.83/100000 - 74.87/100000)*778492
+
+POP17 <- 771286 + 0.9*LS16*(1 - 74.87/100000)
+LS17 <- (84.79/100000 - 74.05/100000)*POP17
+
+POP18 <- 758054 +
+    0.9*LS17*(1 - 74.05/100000) +
+    0.8*LS16*(1 - 74.87/100000)
+LS18 <- (74.01/100000 - 70.17/100000)*POP18
+
+POP19 <- 751030 +
+    0.9*LS18*(1 - 70.17/100000) +
+    0.8*LS17*(1 - 74.05/100000) +
+    0.7*LS16*(1 - 74.87/100000)
+LS19 <- (80.02/100000 - 69.74/100000)*POP19
+
+POP20 <- 746347 +
+    0.9*LS19*(1 - 69.74/100000) +
+    0.8*LS18*(1 - 70.17/100000) +
+    0.7*LS17*(1 - 74.05/100000) +
+    0.6*LS16*(1 - 74.87/100000)
+LS20 <- (89.37/100000 - 84.16/100000)*POP20
+
+sum(c(LS16, LS17, LS18, LS19, LS20))
+```
+
